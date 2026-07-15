@@ -519,6 +519,7 @@
           <sc-for list="{{ galleryRecent }}" as="ph" hint-placeholder-count="5">
             <div style="height:190px;border-radius:14px;overflow:hidden;position:relative;background:var(--a-surface-3);">
               <div style="{{ ph.imgStyle }}"></div>
+              <sc-if value="{{ ph.canRemove }}"><button onClick="{{ ph.remove }}" title="Eliminar foto" style="position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:999px;border:none;background:rgba(2,11,20,.65);color:#fff;font-size:14px;line-height:1;cursor:pointer;">×</button></sc-if>
               <div style="position:absolute;left:0;right:0;bottom:0;padding:8px 10px;background:linear-gradient(transparent,rgba(0,0,0,.75));font-family:var(--font-mono);font-size:10px;color:#fff;">{{ ph.uploadedBy }}</div>
             </div>
           </sc-for>
@@ -538,6 +539,7 @@
           <sc-for list="{{ galleryAll }}" as="ph" hint-placeholder-count="9">
             <div style="height:150px;border-radius:12px;overflow:hidden;position:relative;background:var(--a-surface-3);">
               <div style="{{ ph.imgStyle }}"></div>
+              <sc-if value="{{ ph.canRemove }}"><button onClick="{{ ph.remove }}" title="Eliminar foto" style="position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:999px;border:none;background:rgba(2,11,20,.65);color:#fff;font-size:13px;line-height:1;cursor:pointer;">×</button></sc-if>
               <div style="position:absolute;left:0;right:0;bottom:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.75));font-family:var(--font-mono);font-size:9px;color:#fff;">{{ ph.uploadedBy }}</div>
             </div>
           </sc-for>
@@ -1143,6 +1145,7 @@
                 <span style="font-family:var(--font-mono);font-size:10px;color:var(--a-faint);letter-spacing:.04em;">{{ ev.joinedLabel }}</span>
                 <div style="display:flex;gap:8px;">
                   <sc-if value="{{ ev.canJoin }}"><button onClick="{{ ev.join }}" style="{{ ev.joinStyle }}" style-hover="border-color:var(--a-accent);color:var(--a-accent);">{{ ev.joinLabel }}</button></sc-if>
+                  <sc-if value="{{ ev.canFinalize }}"><button onClick="{{ ev.finalize }}" style="font:600 11px var(--font-body);padding:5px 10px;border-radius:7px;border:1px solid var(--a-line-strong);background:transparent;color:var(--a-muted);cursor:pointer;" style-hover="border-color:var(--a-amber);color:var(--a-amber);">Finalizar</button></sc-if>
                   <sc-if value="{{ ev.canRemove }}"><button onClick="{{ ev.remove }}" style="font:600 11px var(--font-body);padding:5px 10px;border-radius:7px;border:1px solid var(--a-red-soft);background:transparent;color:var(--a-red);cursor:pointer;" style-hover="background:var(--a-red-soft);">Eliminar</button></sc-if>
                 </div>
               </div>
@@ -2633,6 +2636,14 @@ class Component extends DCLogic {
     this.showBanner('Recurso publicado', 'success');
   }
   removeResource(id) { const u = this.state.user; if (!u || u.role !== 'admin') return; this.setState(s => ({ resources: (s.resources || []).filter(x => x.id !== id) }), () => this.persist()); }
+  removeGalleryPhoto(id) { const u = this.state.user; if (!u || u.role !== 'admin') return; this.setState(s => ({ gallery: (s.gallery || []).filter(x => x.id !== id) }), () => this.persist()); }
+  finalizeEvent(id) {
+    const u = this.state.user; if (!u) return;
+    const ev = this.state.events.find(x => x.id === id); if (!ev) return;
+    if (u.role !== 'admin' && ev.createdById !== u.id) { this.showBanner('Solo el anfitrión o un admin puede finalizar este evento', 'error'); return; }
+    this.setState(s => ({ events: s.events.map(x => x.id === id ? { ...x, endedManually: true } : x) }), () => this.persist());
+    this.showBanner('Evento finalizado', 'success');
+  }
 
   openEvent() { const u = this.state.user; if (!u || (u.role !== 'controller' && u.role !== 'admin')) { this.showBanner('Solo controladores y administradores pueden hostear eventos', 'error'); return; } this.setState({ eventModal: true, eventDraft: this.freshEvent() }); }
   closeEvent() { this.setState({ eventModal: false }); }
@@ -2941,7 +2952,8 @@ class Component extends DCLogic {
     const eventCards = (s.events || []).slice().sort((a, b) => a.startsAt - b.startsAt).map((ev, evi) => {
       const diff = ev.startsAt - now.getTime();
       let cd, live, done;
-      if (diff > 0) { const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000), sec = Math.floor((diff % 60000) / 1000); cd = d > 0 ? `${d}d ${pad(h)}h ${pad(m)}m` : `${pad(h)}:${pad(m)}:${pad(sec)}`; live = false; done = false; }
+      if (ev.endedManually) { cd = 'FINALIZADO'; live = false; done = true; }
+      else if (diff > 0) { const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000), sec = Math.floor((diff % 60000) / 1000); cd = d > 0 ? `${d}d ${pad(h)}h ${pad(m)}m` : `${pad(h)}:${pad(m)}:${pad(sec)}`; live = false; done = false; }
       else if (diff > -3 * 3600000) { cd = 'EN CURSO'; live = true; done = false; }
       else { cd = 'FINALIZADO'; live = false; done = true; }
       const col = done ? 'var(--a-faint)' : live ? 'var(--a-accent)' : 'var(--a-amber)';
@@ -2962,7 +2974,8 @@ class Component extends DCLogic {
         cardStyle: `display:flex;gap:16px;align-items:stretch;background:var(--a-surface);border:1px solid var(--a-line);border-radius:16px;padding:18px 20px;animation:atc-fadeup .4s var(--ease-flare) both;animation-delay:${Math.min(evi*60,300)}ms;`,
         barStyle: `width:4px;align-self:stretch;border-radius:4px;background:${col};`,
         pillStyle: `font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 9px;border-radius:999px;color:${col};background:${done ? 'var(--a-surface-3)' : live ? 'var(--a-accent-soft)' : 'var(--a-amber-soft)'};`,
-        canRemove: isAdmin || (authed && ev.createdById === (u && u.id)), remove: () => this.removeEvent(ev.id) };
+        canRemove: isAdmin || (authed && ev.createdById === (u && u.id)), remove: () => this.removeEvent(ev.id),
+        canFinalize: !done && (isAdmin || (authed && ev.createdById === (u && u.id))), finalize: () => this.finalizeEvent(ev.id) };
     });
     const noEvents = eventCards.length === 0;
 
@@ -3065,8 +3078,8 @@ class Component extends DCLogic {
           hueColor: hue, noImage: !nw.image,
           imgStyle: nw.image ? `position:absolute;inset:0;background:url('${nw.image}') center/cover no-repeat;` : '' };
       }),
-      galleryRecent: (s.gallery || []).slice(0, 5).map(ph => ({ ...ph, imgStyle: `width:100%;height:100%;background:url('${ph.url}') center/cover no-repeat;` })),
-      galleryAll: (s.gallery || []).map(ph => ({ ...ph, imgStyle: `width:100%;height:100%;background:url('${ph.url}') center/cover no-repeat;` })),
+      galleryRecent: (s.gallery || []).slice(0, 5).map(ph => ({ ...ph, imgStyle: `width:100%;height:100%;background:url('${ph.url}') center/cover no-repeat;`, canRemove: isAdmin, remove: () => this.removeGalleryPhoto(ph.id) })),
+      galleryAll: (s.gallery || []).map(ph => ({ ...ph, imgStyle: `width:100%;height:100%;background:url('${ph.url}') center/cover no-repeat;`, canRemove: isAdmin, remove: () => this.removeGalleryPhoto(ph.id) })),
       galleryHasMore: (s.gallery || []).length > 5,
       galleryModal: !!s.galleryModal, openGalleryAll: () => this.openGalleryAll(), closeGalleryAll: () => this.closeGalleryAll(),
       onGalleryFile: e => this.onGalleryFile(e),
