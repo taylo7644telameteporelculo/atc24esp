@@ -1542,7 +1542,7 @@
           </div>
           <div style="margin-bottom:16px;">
             <label style="display:block;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--a-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Controlador</label>
-            <input name="controllerName" value="{{ atcName }}" onChange="{{ onAtc }}" placeholder="Nombre en frecuencia" style="width:100%;background:var(--a-surface-3);border:1px solid var(--a-line-strong);border-radius:8px;padding:10px 12px;color:var(--a-text);font:14px var(--font-body);outline:none;" style-focus="border-color:var(--a-accent);"/>
+            <input name="controllerName" value="{{ atcName }}" readonly="readonly" style="width:100%;background:var(--a-surface-3);border:1px solid var(--a-line-strong);border-radius:8px;padding:10px 12px;color:var(--a-muted);font:14px var(--font-body);outline:none;cursor:not-allowed;"/>
           </div>
           <div style="margin-bottom:20px;">
             <label style="display:block;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--a-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Rating</label>
@@ -2010,6 +2010,10 @@ class Component extends DCLogic {
       this.connectDiscord();
       return;
     }
+    if (k === 'academy' && (!this.state.user || this.state.user.role !== 'admin')) {
+      this.showBanner('La Academia está deshabilitada por ahora', 'error');
+      return;
+    }
     this.setState({ view: k }); try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) { window.scrollTo(0, 0); } if (k === 'home') this.startHome();
   }
   startHome() {
@@ -2183,7 +2187,7 @@ class Component extends DCLogic {
           // users/settings/discordCounts no tienen semilla local: siempre se toman del servidor, aunque vengan vacíos.
           patch.users = data.users || {};
           patch.settings = data.settings || {};
-          patch.discordCounts = data.discordCounts || { pilots: 0, controllers: 0 };
+          patch.discordCounts = data.discordCounts || { pilots: 0, controllers: 0, total: 0 };
           if (Object.keys(patch).length) {
             this._applyingRemote = true;
             this.setState(patch, () => { this.persist(); this._applyingRemote = false; this._booted = true; });
@@ -2326,10 +2330,10 @@ class Component extends DCLogic {
   submitAtc() {
     const u = this.state.user; if (!u) return;
     const a = this.state.atcDraft;
-    if (!a.airport || !a.controllerName || !a.frequency) { this.showBanner('Completa aeródromo, frecuencia y controlador', 'error'); return; }
+    if (!a.airport || !a.frequency) { this.showBanner('Completa aeródromo y frecuencia', 'error'); return; }
     if (!/^[A-Za-z]{4}$/.test(a.airport)) { this.showBanner('El código de aeródromo debe tener 4 letras (ej. SCEL)', 'error'); return; }
     const cs = `${(a.airport || '').toUpperCase()}_${a.positionType || 'TWR'}`;
-    const pos = { id: 'a' + Date.now() + Math.floor(Math.random()*99), airport: (a.airport || '').toUpperCase(), positionType: a.positionType || 'TWR', callsign: cs, frequency: a.frequency, controllerName: a.controllerName, rating: a.rating || 'S1', ownerId: u.id, since: Date.now() };
+    const pos = { id: 'a' + Date.now() + Math.floor(Math.random()*99), airport: (a.airport || '').toUpperCase(), positionType: a.positionType || 'TWR', callsign: cs, frequency: a.frequency, controllerName: u.username, rating: a.rating || 'S1', ownerId: u.id, since: Date.now() };
     this.setState(s => ({ atc: [pos, ...s.atc], atcModal: false, atcDraft: this.freshAtc() }), () => this.persist());
     this.showBanner(`${pos.callsign} en línea · ${pos.frequency}`, 'success');
     this.logAct(`${pos.callsign} inició servicio en ${pos.frequency}`, 'atc');
@@ -3004,10 +3008,10 @@ class Component extends DCLogic {
       t, utc, utcDate, authed, notAuthed: !authed, user, canCreatePlan, canOpenAtc,
       toggleTheme: () => this.toggleTheme(), scrollNetwork: () => this.scrollNetwork(),
       simPlan: () => this.simPlan(), simAtc: () => this.simAtc(), isAdmin,
-      navTabs: [ tab('home', 'Inicio'), tab('live', 'Red'), tab('fields', 'Aeródromos'), ...(isController ? [tab('tower', 'Torre')] : []), tab('ranking', 'Ranking'), tab('academy', 'Academia'), tab('blog', 'Noticias'), tab('resources', 'Recursos') ].filter(t2 => authed || ['home', 'blog', 'ranking'].includes(t2.key)),
+      navTabs: [ tab('home', 'Inicio'), tab('live', 'Red'), tab('fields', 'Aeródromos'), ...(isController ? [tab('tower', 'Torre')] : []), tab('ranking', 'Ranking'), tab('academy', 'Academia'), tab('blog', 'Noticias'), tab('resources', 'Recursos') ].filter(t2 => t2.key === 'academy' ? isAdmin : (authed || ['home', 'blog', 'ranking'].includes(t2.key))),
       navPrimary: [ tab('home', 'Inicio'), tab('live', 'Red'), tab('fields', 'Aeródromos'), ...(isController ? [{ ...tab('tower', 'Torre'), midOnly: 1 }] : []) ].filter(t2 => authed || t2.key === 'home'),
       navMoreMid: (isController ? [tab('tower', 'Torre')] : []).filter(() => authed).map(t2 => ({ ...t2, pick: () => { this.setState({ moreOpen: false }); this.go(t2.key); }, itemStyle: `display:block;width:100%;text-align:left;font:600 13px var(--font-body);padding:10px 14px;border-radius:8px;border:none;background:${t2.active ? 'var(--a-accent-soft)' : 'transparent'};color:${t2.active ? 'var(--a-accent)' : 'var(--a-text)'};cursor:pointer;` })),
-      navMore: [ tab('ranking', 'Ranking'), tab('academy', 'Academia'), tab('blog', 'Noticias'), tab('resources', 'Recursos') ].filter(t2 => authed || ['ranking', 'blog'].includes(t2.key)).map(t2 => ({ ...t2, pick: () => { this.setState({ moreOpen: false }); this.go(t2.key); }, itemStyle: `display:block;width:100%;text-align:left;font:600 13px var(--font-body);padding:10px 14px;border-radius:8px;border:none;background:${t2.active ? 'var(--a-accent-soft)' : 'transparent'};color:${t2.active ? 'var(--a-accent)' : 'var(--a-text)'};cursor:pointer;` })),
+      navMore: [ tab('ranking', 'Ranking'), tab('academy', 'Academia'), tab('blog', 'Noticias'), tab('resources', 'Recursos') ].filter(t2 => t2.key === 'academy' ? isAdmin : (authed || ['ranking', 'blog'].includes(t2.key))).map(t2 => ({ ...t2, pick: () => { this.setState({ moreOpen: false }); this.go(t2.key); }, itemStyle: `display:block;width:100%;text-align:left;font:600 13px var(--font-body);padding:10px 14px;border-radius:8px;border:none;background:${t2.active ? 'var(--a-accent-soft)' : 'transparent'};color:${t2.active ? 'var(--a-accent)' : 'var(--a-text)'};cursor:pointer;` })),
       moreOpen: s.moreOpen, toggleMore: () => this.setState(x => ({ moreOpen: !x.moreOpen })),
       moreBtnStyle: (() => { const moreKeys = ['ranking', 'academy', 'blog', 'resources']; const on = moreKeys.includes(s.view); return `position:relative;z-index:1;white-space:nowrap;flex:none;font:600 13px var(--font-body);padding:8px 12px;border-radius:8px;border:none;background:${on ? 'var(--a-accent-soft)' : 'transparent'};color:${on ? 'var(--a-accent)' : 'var(--a-muted)'};cursor:pointer;`; })(),
       isLive: s.view === 'live', isFields: s.view === 'fields', isTower: s.view === 'tower', isEvents: s.view === 'events', isRanking: s.view === 'ranking',
@@ -3025,7 +3029,7 @@ class Component extends DCLogic {
       formSections, onDraft: e => this.onDraft(e), submitPlan: () => this.submitPlan(),
       onAtc: e => this.onAtc(e), submitAtc: () => this.submitAtc(),
       onVerify: e => this.onVerify(e), submitVerify: () => this.submitVerify(), verifyName: vd.username || '', roleOpts, logout: () => this.logout(),
-      atcCallsign, atcFreqDisplay: ad.frequency || '---.---', atcAirport: ad.airport || '', atcFreq: ad.frequency || '', atcName: ad.controllerName || '',
+      atcCallsign, atcFreqDisplay: ad.frequency || '---.---', atcAirport: ad.airport || '', atcFreq: ad.frequency || '', atcName: (u && u.username) || '',
       posOpts: segA('positionType', ['DEL','GND','TWR','APP','CTR','ATIS']), ratingOpts: segA('rating', ['S1','S2','S3','C1','C3','I1']),
       banner,
       // notifications
@@ -3131,15 +3135,19 @@ class Component extends DCLogic {
         const pilotMap = {};
         (s.plans || []).forEach(p => {
           if (!p.ownerId || (p.filedAt || 0) < since) return;
-          if (!pilotMap[p.ownerId]) pilotMap[p.ownerId] = { name: p.ownerName || 'Piloto', flights: 0 };
+          if (!pilotMap[p.ownerId]) pilotMap[p.ownerId] = { name: p.ownerName || 'Piloto', flights: 0, ownerId: p.ownerId };
           pilotMap[p.ownerId].flights++;
         });
-        const scaled = Object.values(pilotMap).map(p => ({ name: p.name, flights: p.flights, hours: Math.round(p.flights * 1.5) })).sort((a, b) => b.flights - a.flights);
+        const scaled = Object.values(pilotMap).map(p => ({ name: p.name, flights: p.flights, hours: Math.round(p.flights * 1.5), ownerId: p.ownerId })).sort((a, b) => b.flights - a.flights);
         const medals = [{ c: '#FFB400', l: '1' }, { c: '#B8C4D4', l: '2' }, { c: '#CD7F32', l: '3' }];
-        const top3 = scaled.slice(0, 3).map((p, i) => ({ ...p, hoursLabel: p.hours + ' h', flightsLabel: p.flights + ' vuelos', medal: medals[i].l, medalColor: medals[i].c,
-          initial: p.name.charAt(0).toUpperCase(),
-          colStyle: `display:flex;flex-direction:column;align-items:center;gap:10px;order:${i === 0 ? 2 : i === 1 ? 1 : 3};${i === 0 ? 'transform:translateY(-18px);' : ''}`,
-          avStyle: `width:${i === 0 ? 74 : 58}px;height:${i === 0 ? 74 : 58}px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:${i === 0 ? 30 : 22}px;font-weight:800;color:#02111F;background:${medals[i].c};box-shadow:0 0 0 4px ${i === 0 ? 'var(--a-amber-soft)' : 'var(--a-surface-3)'},0 12px 30px rgba(0,0,0,.25);` }));
+        const top3 = scaled.slice(0, 3).map((p, i) => {
+          const avatar = ((s.users || {})[p.ownerId] || {}).avatar;
+          const size = i === 0 ? 74 : 58;
+          return { ...p, hoursLabel: p.hours + ' h', flightsLabel: p.flights + ' vuelos', medal: medals[i].l, medalColor: medals[i].c,
+            initial: avatar ? '' : p.name.charAt(0).toUpperCase(),
+            colStyle: `display:flex;flex-direction:column;align-items:center;gap:10px;order:${i === 0 ? 2 : i === 1 ? 1 : 3};${i === 0 ? 'transform:translateY(-18px);' : ''}`,
+            avStyle: `width:${size}px;height:${size}px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:${i === 0 ? 30 : 22}px;font-weight:800;color:#02111F;background:${avatar ? `${medals[i].c} url('${avatar}') center/cover no-repeat` : medals[i].c};box-shadow:0 0 0 4px ${i === 0 ? 'var(--a-amber-soft)' : 'var(--a-surface-3)'},0 12px 30px rgba(0,0,0,.25);` };
+        });
         const rest = scaled.slice(3, 10).map((p, i) => ({ pos: i + 4, name: p.name, flights: p.flights + ' vuelos', hours: p.hours + ' h' }));
         const ctlMap = {};
         (s.atc || []).forEach(a => {
@@ -3192,7 +3200,7 @@ class Component extends DCLogic {
       localTime: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
       division: this.divisionFor(u, s.plans, s.atc),
       joinModal: s.joinModal, openJoin: () => this.setState({ joinModal: true }), closeJoin: () => this.setState({ joinModal: false }),
-      joinStats: { members: Object.keys(s.users || {}).length.toLocaleString('es'), plans: (s.plans || []).length.toLocaleString('es') },
+      joinStats: { members: (s.discordCounts || {}).total ? s.discordCounts.total.toLocaleString('es') : Object.keys(s.users || {}).length.toLocaleString('es'), plans: (s.plans || []).length.toLocaleString('es') },
       robloxUrl: (s.settings || {}).robloxUrl || this.props.robloxUrl || 'https://www.roblox.com/es/communities/',
       discordUrl: (s.settings || {}).discordUrl || 'https://discord.gg/jxXhg2hnZD',
       settingsDraft: s.settingsDraft || s.settings || {}, onSettingsDraft: e => this.onSettingsDraft(e), saveSettings: () => this.saveSettings(),

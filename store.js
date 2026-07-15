@@ -18,7 +18,7 @@ const DEFAULT_STATE = {
   gallery: [],
   resources: [],
   readings: [],
-  discordCounts: { pilots: 0, controllers: 0, updatedAt: 0 },
+  discordCounts: { pilots: 0, controllers: 0, total: 0, updatedAt: 0 },
 };
 
 function load() {

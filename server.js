@@ -67,7 +67,7 @@ function roleForMember(discordRoleIds) {
 async function refreshDiscordCounts() {
   try {
     let after = '0';
-    let pilots = 0, controllers = 0;
+    let pilots = 0, controllers = 0, total = 0;
     for (let page = 0; page < 20; page++) {
       const res = await fetch(
         `https://discord.com/api/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
@@ -79,6 +79,8 @@ async function refreshDiscordCounts() {
       }
       const members = await res.json();
       for (const m of members) {
+        if (m.user && m.user.bot) continue;
+        total++;
         const roles = m.roles || [];
         if (ROLE_ID_PILOT && roles.includes(ROLE_ID_PILOT)) pilots++;
         if (ROLE_ID_CONTROLLER && roles.includes(ROLE_ID_CONTROLLER)) controllers++;
@@ -87,7 +89,7 @@ async function refreshDiscordCounts() {
       if (members.length < 1000) break;
       after = members[members.length - 1].user.id;
     }
-    store.setDiscordCounts({ pilots, controllers });
+    store.setDiscordCounts({ pilots, controllers, total });
     io.emit('state:patch', { discordCounts: store.getState().discordCounts });
   } catch (err) {
     console.error('[discord counts] error:', err.message);
