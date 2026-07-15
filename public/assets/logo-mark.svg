@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="ATC24 Español winged aviator mark on radar scope">
+  <defs>
+    <radialGradient id="scope-bg" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#0E2F4C"></stop>
+      <stop offset="65%" stop-color="#061726"></stop>
+      <stop offset="100%" stop-color="#020812"></stop>
+    </radialGradient>
+    <linearGradient id="sweep" x1="0" y1="0" x2="100" y2="-60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4FFFA8" stop-opacity="0"></stop>
+      <stop offset="60%" stop-color="#4FFFA8" stop-opacity="0.35"></stop>
+      <stop offset="100%" stop-color="#4FFFA8" stop-opacity="0.85"></stop>
+    </linearGradient>
+    <clipPath id="scope-clip">
+      <circle cx="120" cy="120" r="112"></circle>
+    </clipPath>
+  </defs>
+
+  
+  <circle cx="120" cy="120" r="112" fill="url(#scope-bg)"></circle>
+
+  <g clip-path="url(#scope-clip)">
+
+    
+    <g fill="none" stroke="#4FFFA8" stroke-opacity="0.18" stroke-width="0.9">
+      <circle cx="120" cy="120" r="88"></circle>
+      <circle cx="120" cy="120" r="64"></circle>
+      <circle cx="120" cy="120" r="40"></circle>
+    </g>
+
+    
+    <g stroke="#4FFFA8" stroke-opacity="0.14" stroke-width="0.8">
+      <line x1="10" y1="120" x2="230" y2="120"></line>
+      <line x1="120" y1="10" x2="120" y2="230"></line>
+    </g>
+
+    
+    <g transform="translate(120 120) rotate(-30)">
+      <path d="M 0 0 L 108 0 A 108 108 0 0 0 54 -94 Z" fill="url(#sweep)"></path>
+    </g>
+
+    
+    <g fill="none" stroke="#F4EFE6" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+
+      
+      <path d="M 86 96 Q 120 62 154 96"></path>
+      <path d="M 74 104 Q 120 68 166 104"></path>
+      <path d="M 62 112 Q 120 74 178 112"></path>
+
+      
+      <path d="M 104 132 Q 70 132 32 142"></path>
+      <path d="M 104 142 Q 64 144 20 158"></path>
+      <path d="M 106 152 Q 66 158 28 172"></path>
+      <path d="M 108 162 Q 72 174 46 184"></path>
+
+      
+      <path d="M 136 132 Q 170 132 208 142"></path>
+      <path d="M 136 142 Q 176 144 220 158"></path>
+      <path d="M 134 152 Q 174 158 212 172"></path>
+      <path d="M 132 162 Q 168 174 194 184"></path>
+
+    </g>
+
+    
+    <path d="M 112 116&#xA;             C 112 120 116 124 122 124&#xA;             L 128 124&#xA;             C 130 124 130 126 128 126&#xA;             L 124 128&#xA;             C 122 129 122 132 124 132&#xA;             L 126 134&#xA;             C 126 138 122 140 118 140&#xA;             C 113 140 110 136 110 130 Z" fill="#F4EFE6"></path>
+
+    
+    <circle cx="118" cy="128" r="3.4" fill="#4FFFA8"></circle>
+
+  </g>
+
+  
+  <circle cx="120" cy="120" r="112" fill="none" stroke="#4FFFA8" stroke-opacity="0.55" stroke-width="1.5"></circle>
+</svg>
